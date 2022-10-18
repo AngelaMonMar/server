@@ -1,0 +1,21 @@
+*Funcionamiento
+
+Cliente:::>En cuando se conecta el 1º msg q se l envia al arrancar()(desde el CC)=
+    
+        modelo.enviarMensaje_alServidor(ESTADO_CHECKBOX+SEPARADOR+
+                                    remoteIp+SEPARADOR+
+                                    CHECKBOX_REGISTRO_FALSE);
+
+de esta manera se comprueba q ya se logueo y activo "recordar pw" 
+(para saber si entrar en un frame_menu/frame_login
+
+
+SERVER:::ModeloServidor_hiloDelCliente lo recibe y evalua en switch - La primera Palabara
+  mira si esta metido en la colection de strSockets_guardados() ( si es asi sqx activo checkBox'recordarPw' en el login
+ devuelve 
+    *ESTADO_CHECKBOX+SEPARADOR+CHECKBOX_REGISTRO_FALSE/true+SEPARADOR+usuario.getNombre() // si ya esta en alguna lista
+ or   *ESTADO_CHECKBOX+SEPARADOR+CHECKBOX_REGISTRO_FALSE // es la primera vez
+
+
+Protocolo auxiliar length()==2
+SIN_DATOS=cl envia SIN_DATOS ('protocolo':SIN_DATOS) 
