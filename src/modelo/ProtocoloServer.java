@@ -73,11 +73,31 @@ public class ProtocoloServer {
     public static final String COMENTARIO="COMENTARIO"; //  COMENTARIO +SEPARADOR+comment+SEPARADOR+Integer.toString(id);
   
     //menu opciones escritorio
-    public static final String ACTION1="ACTION1";
-    public static final String ACTION2="ACTION2";
-    public static final String ACTION3="ACTION3";
-    public static final String ACTION4="ACTION4";
-     public static final String ACTION5="ACTION5"; 
+    public static final String MENU_USUARIO="MENU_USUARIO";
+    public static final String MENU_ESTAFADOR="MENU_ESTAFADOR";
+    public static final String MENU_COMENTARIO="MENU_COMENTARIO";
+    public static final String MENU_TAG="MENU_TAG";
+    public static final String MENU_CATEGORIA="MENU_CATEGORIA"; 
+   
+    
+       //usuario
+    public static final String INSERT_USUARIO="INSERT_USUARIO";
+    public static final String DELETE_USUARIO="DELETE_USUARIO";
+    public static final String UPDATE_USUARIO="UPDATE_USUARIO";
+    
+        //COMENTARIO
+    public static final String DELETE_COMMENT="DELETE_COMMENT";
+    public static final String INSERT_COMMENT="INSERT_COMMENT";
+    public static final String UPDATE_COMMENT="UPDATE_COMMENT";
+  
+       // TAG
+    public static final String INSERT_TAG="INSERT_TAG";
+    public static final String DELETE_TAG="DELETE_TAG";
+    public static final String UPDATE_TAG="UPDATE_TAG";
+      // CATEGORIA
+    public static final String INSERT_CATEGORIA="INSERT_CATEGORIA";
+    public static final String DELETE_CATEGORIA="DELETE_CATEGORIA";
+    public static final String UPDATE_CATEGORIA="UPDATE_CATEGORIA";
      
      
  public static final String CONTACTO="CONTACTO";//CONTACTO
@@ -87,11 +107,9 @@ public class ProtocoloServer {
     public final static String GET_LIST_ESTAFAS = "GET_LIST_ESTAFAS";//GET_ESTAFAS+SEPARADOR
     public final static String GET_DETALLES_ESTAFAS= "GET_DETALLES_ESTAFAS";//GET_DETALLES_ESTAFAS+SEPARADOR+ID_estafa
     public final static String  GET_COMMENTS_ESTAFA="GET_COMMENTS_ESTAFA";////GET_COMMENTS_ESTAFA+SEPARADOR+ID_ESTAFA
+   public final static String GET_CONTADOR_VISTAS="GET_CONTADOR_VISTAS";
+   
 
-  public static final String DELETE="DELETE";
-  public static final String INSERT="INSERT";
-  public static final String UPDATE="UPDATE";
-  public static final String ADDTAG="ADDTAG";
   
    public static final String ROL_ADMIN="ROL_ADMIN";
    public static final String ROL_ANDROID="ROL_ANDROID";

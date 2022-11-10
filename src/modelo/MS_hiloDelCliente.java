@@ -5,8 +5,9 @@
  */
 package modelo;
 
+import modelo.objetos.Usuario;
 import controlador.Clase_compartida;
-import controlador.Clase_compartidaChatPublico;
+
 import controlador.ControladorServidor;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -25,6 +26,12 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static modelo.ProtocoloServer.*;
+import modelo.daos.CategoryDao;
+import modelo.daos.CommentDao;
+import modelo.daos.EstafaDao;
+import modelo.daos.EstafadorDao;
+import modelo.daos.TagDao;
+import modelo.daos.UsuarioDao;
 
 /**
  *
@@ -42,12 +49,16 @@ public class MS_hiloDelCliente extends Thread {
     private BufferedReader br;
     private BufferedWriter bw;
     private int contador=1; // para contar los fallos al loguear
-    
-    private Clase_compartidaChatPublico clasCompartidaChat=new Clase_compartidaChatPublico();
 
     private Clase_compartida clase_compartida;
     private Usuario usuario;
-
+    private UsuarioDao usuarioDao=new UsuarioDao();
+    private CommentDao commentDao=new CommentDao();
+    private EstafadorDao estafadorDao=new EstafadorDao();
+    private EstafaDao estafaDao=new EstafaDao();
+    private TagDao tagDao=new TagDao();
+    private CategoryDao categoryDao=new CategoryDao();
+   
     public MS_hiloDelCliente(ServerSocket ss, Clase_compartida cc ){
          this.serverSocket =ss;
          this.clase_compartida=cc;
@@ -96,12 +107,15 @@ public class MS_hiloDelCliente extends Thread {
     }
     
     public String recibirMensaje(){
+        // if(clase_compartida.getLista_hosts_guardado().size()>0){
         try {
             String mensaje = br.readLine();
+            System.out.println("MS mensaje "+mensaje);
             if(!mensaje.isEmpty()|| mensaje.getBytes().length>=1)
                 return mensaje;
         } catch (IOException ex) {
             System.err.println("-------IOException ERROR recibirMensaje--- PENDIENTE CORREGIR "+ex.getMessage());
+            
             
         }
         return "";
@@ -121,13 +135,21 @@ public class MS_hiloDelCliente extends Thread {
     public void run(){
         String email=null;
         String fecha="";
-      
+        String str_id="";
+
         
         while(true){
              String mensaje = recibirMensaje();
-             if(mensaje!=null || mensaje.length()!=0){
+//             System.out.println("mensaje.isEmpty() " +mensaje.isEmpty());
+//              System.out.println(" isBlank " +mensaje.isBlank());
+//               System.out.println(" equals " +mensaje.equals(""));
+               
+                
+             if(!mensaje.isEmpty() || !mensaje.equals("")){
+                 
                  controlador.server_vista_muestra_msg("MS Recibido del  cliente <---- "+mensaje);
                  System.out.println("MS :Recibido del  cliente -> "+mensaje);
+          
                  String [] strSplit=mensaje.split(SEPARADOR);
 
                  //--- switch evalua la palabra protocol       
@@ -163,20 +185,21 @@ public class MS_hiloDelCliente extends Thread {
                               this.salida=(LOGIN_NOT_OK + SEPARADOR + " CAMPOS estan vacio " + contador);
                             contador++;
 
-                        } else if (strSplit.length == 4) {// es la primera vez q se loguea LOGIN:NICK:PW:CHECKBOX
+                        } else if (strSplit.length >= 4) {// es la primera vez q se loguea LOGIN:NICK:PW:CHECKBOX:ROL
                             String nick = strSplit[1];
                             String pw = strSplit[2];
-                             System.out.println("\t"+nick+"\t"+pw);
                             boolean checkbox_isChecked = sePulsoCheckBox_registro(strSplit[3]);
+                            String rol = strSplit[4];
+                            System.out.println("\t"+nick+"\t"+pw+"\t"+rol);
                            // controlador.server_vista_muestra_msg("El cliente dice: " + nick + "\t pw " + pw + "\t" + checkbox_isChecked);
 
 
-                            if (clase_compartida.comprobarLogin2(nick, pw)) {// comprueba si existe registro
+                            if (usuarioDao.comprobarLogin(nick, pw)) {// comprueba si existe registro
 
                                 System.out.println(" esta activo la casilla " + checkbox_isChecked);
                                 if (checkbox_isChecked) {// si checkbox fue activado
                                     clase_compartida.addStringSocket(this.getSocket().toString());// guarda el socket del cl
-                                       this.salida=(LOGIN_OK + SEPARADOR + nick + SEPARADOR + CHECKBOX_REGISTRO_TRUE);// entra en frame menu
+                                    this.salida=(LOGIN_OK + SEPARADOR + nick + SEPARADOR + CHECKBOX_REGISTRO_TRUE);// entra en frame menu
 
                                 } else {
                                        this.salida=(LOGIN_OK + SEPARADOR + nick + SEPARADOR + CHECKBOX_REGISTRO_FALSE);// entra en login menu
@@ -202,7 +225,7 @@ public class MS_hiloDelCliente extends Thread {
                         this.salida=(REGISTER + SEPARADOR + " ....");
                         break;
 
-                    case REGISTER_FORM:
+                    case REGISTER_FORM: /// REGISTER_FORM : nombre : nick : email : password : ROL_APPCL
                         if (strSplit[1].equals(SIN_DATOS)) { // datos erroneos en __Server4App.vista register
                                this.salida=(REGISTER_FORM_NOT_OK + SEPARADOR + " CAMPOS formulario no pueden estar vacio ");
 
@@ -217,9 +240,9 @@ public class MS_hiloDelCliente extends Thread {
                             
                             //llama M en la clase_compartida para guardar los datos cl+ el socket del mismo
                             //clase_compartida.addDatos_registroBD(usuario, this.getSocket());//prueba en lista
-                            boolean isRegisterOk=clase_compartida.insertar_newUsuario(usuario, this.getSocket());
+                            boolean isRegisterOk=usuarioDao.insertar_newUsuario(usuario, this.getSocket());
                             
-                            System.out.println("\n BOOLEAN SI SE HA INSERTADO ----"+isRegisterOk);
+             System.out.println("\n BOOLEAN SI SE HA INSERTADO ----"+isRegisterOk);
                             
                             if(isRegisterOk){
                                // clase_compartida.map_socket_usuario_register.put(this.getSocket(), usuario);// directamente al map
@@ -238,7 +261,7 @@ public class MS_hiloDelCliente extends Thread {
                     case CHANGE_PW://CHANGE_PW:email:newPw-- pendiente en appescritorio
                         email = strSplit[1];
                         String newpw = strSplit[2];
-                        String s = clase_compartida.cambiarPwCliente(email, newpw);
+                        String s = usuarioDao.cambiarPwCliente(email, newpw);
                         System.out.println("MS- string CHANGE_PW "+s);
                         this.salida=(s);
                         break;
@@ -249,7 +272,7 @@ public class MS_hiloDelCliente extends Thread {
                         email = strSplit[1];
                         try {
                             //usuario = clase_compartida.getUsuario_x_email(email);
-                            boolean emailExiste= clase_compartida.existeEmail_usuario(email);
+                            boolean emailExiste= usuarioDao.existeEmail_usuario(email);
                             System.out.println("MS EMAIL "+email+" "+emailExiste);
                             
                             if (emailExiste) {// antes usuario != null    
@@ -273,36 +296,97 @@ public class MS_hiloDelCliente extends Thread {
                         break;
 
                         // solo  escritorio
-                    case ACTION1:
+                        //MENU usuario cases
+                    case MENU_USUARIO:
                         String usuarios="";
-                        usuarios=clase_compartida.getUsuario();
-                        this.salida=(!usuarios.equals(""))? (ACTION1 + SEPARADOR +OK+SEPARADOR+ usuarios):(ACTION1 + SEPARADOR + usuarios);
-                        break;
-
-                     case ACTION2:
-                        String estafadores="";
-                        estafadores=clase_compartida.getInformacionEstafador();
-                        this.salida=(!estafadores.equals(""))? (ACTION2 + SEPARADOR+OK+SEPARADOR + estafadores):(ACTION2 + SEPARADOR +NOT_OK);
-                        break;  
-                    case ACTION3:
-                        String comentario_estafas="";
-                        comentario_estafas=clase_compartida.getComentarios();
-                        this.salida=(!comentario_estafas.equals(""))? (ACTION3 + SEPARADOR +OK+SEPARADOR+ comentario_estafas):(ACTION3 + SEPARADOR );
-                        break;
-                     case ACTION4:
-                        String etiketas=clase_compartida.getTagsAction4();
-                        this.salida=(!etiketas.equals(""))? (ACTION4 + SEPARADOR+OK + SEPARADOR+etiketas):(ACTION4 + SEPARADOR );
-                        break;    
-                     case ACTION5:
-                        this.salida=(ACTION5 + SEPARADOR + " " );
+                        usuarios=usuarioDao.getUsuarios();
+                        this.salida=(!usuarios.equals(""))? (MENU_USUARIO + SEPARADOR +OK+SEPARADOR+ usuarios):(MENU_USUARIO + SEPARADOR + usuarios);
+                        break;                  
+                    case INSERT_USUARIO:// quitar, se hace desde menu
+                        //System.out.println("INSERT_USUARIO "+mensaje);
+                        respuesta=usuarioDao.updateBy_Id(mensaje);
+                        this.salida=(DELETE_USUARIO+SEPARADOR+respuesta);
                         break; 
+                    case UPDATE_USUARIO:
+                       // System.out.println("UPDATE_USUARIO "+mensaje);
+                        respuesta=usuarioDao.updateBy_Id(mensaje);//UPDATE:id:name:nick:email;
+                        this.salida=(UPDATE_USUARIO+SEPARADOR+respuesta);
+                        break; 
+                    case DELETE_USUARIO:
+                       // System.out.println("STOY DELETE_USUARIO "+mensaje);
+                        respuesta=usuarioDao.deleteUsuario(strSplit[1]);
+                        this.salida=(DELETE_USUARIO+SEPARADOR+respuesta);
+                        break; 
+
+
+                     case MENU_ESTAFADOR:
+                        String estafadores="";
+                        estafadores=estafadorDao.getInformacionEstafador();
+                        this.salida=(!estafadores.equals(""))? (MENU_ESTAFADOR + SEPARADOR+OK+SEPARADOR + estafadores):(MENU_ESTAFADOR + SEPARADOR +NOT_OK);
+                        break;  
+  
+                    case MENU_COMENTARIO:
+                        String comentario_estafas="";
+                        comentario_estafas=commentDao.getComentarios();
+                        this.salida=(!comentario_estafas.equals(""))? (MENU_COMENTARIO + SEPARADOR +OK+SEPARADOR+ comentario_estafas):(MENU_COMENTARIO + SEPARADOR );
+                        break;
+                     case UPDATE_COMMENT:
+                         respuesta=commentDao.updateComment(mensaje);
+                         this.salida=UPDATE_COMMENT+SEPARADOR+respuesta;
+                         break; 
+                     case DELETE_COMMENT:
+                       // System.out.println("STOY DELETE_USUARIO "+mensaje);
+                        respuesta=commentDao.deleteComment(strSplit[1]);
+                        this.salida=(DELETE_COMMENT+SEPARADOR+respuesta);
+                        break;      
+                    
+                    // MENU TAG
+                     case MENU_TAG:
+                         System.out.println("MS MENU_TAG "+mensaje);
+                        String etiketas=tagDao.getTags2();
+                        this.salida=(!etiketas.equals(""))? (MENU_TAG + SEPARADOR+OK + SEPARADOR+etiketas):(MENU_TAG + SEPARADOR );
+                        break; 
+                    case INSERT_TAG:////(INSERT_TAG:Tag insertada
+                        System.out.println("INSERT_TAG "+mensaje);
+                        respuesta=tagDao.addTag(mensaje);
+                        this.salida=(INSERT_TAG+SEPARADOR+respuesta);
+                        break;     
+                     case UPDATE_TAG:
+                         respuesta=tagDao.updateTag(mensaje);
+                         this.salida=UPDATE_TAG+SEPARADOR+respuesta;
+                         break; 
+                     case DELETE_TAG:
+                       // System.out.println("STOY DELETE_USUARIO "+mensaje);
+                        respuesta=tagDao.deleteTag(strSplit[1]);
+                        this.salida=(DELETE_TAG+SEPARADOR+respuesta);
+                        break;     
+                        
+                        
+                    //MENU categoria    
+                    case MENU_CATEGORIA:
+                         System.out.println("MS MENU_CATEGORIA "+mensaje);
+                        String categorias=categoryDao.getCategories2();//id:valor;
+                        this.salida=(!categorias.equals(""))? (MENU_CATEGORIA + SEPARADOR+OK + SEPARADOR+categorias):(MENU_CATEGORIA + SEPARADOR );
+                        break;
+                    case INSERT_CATEGORIA:////(INSERT_TAG:Tag insertada
+                        System.out.println("INSERT_cat "+mensaje);
+                        respuesta=categoryDao.addCategory(mensaje);
+                        this.salida=(INSERT_CATEGORIA+SEPARADOR+respuesta);
+                        break;     
+                     case UPDATE_CATEGORIA:
+                         respuesta=categoryDao.updateCategory(mensaje);
+                         this.salida=UPDATE_CATEGORIA+SEPARADOR+respuesta;
+                         break; 
+                     case DELETE_CATEGORIA:
+                       // System.out.println("STOY DELETE_USUARIO "+mensaje);
+                        respuesta=categoryDao.deleteCategory(strSplit[1]);
+                        this.salida=(DELETE_CATEGORIA+SEPARADOR+respuesta);
+                        break;     
+ 
                     // solo app android
                     case REGISTRAR_ESTAFA:// REGISTRAR_ESTAFA:
-                        //System.out.println("MS stoy en estafa\n"+mensaje);
-                        Date date=new Date();
-                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
                         fecha = dameFecha();//sdf.format(date);
-                        boolean estafaOk=clase_compartida.addEstafa(mensaje+SEPARADOR+fecha);
+                        boolean estafaOk=estafaDao.addEstafa(mensaje+SEPARADOR+fecha);
 
                         if(estafaOk)
                                this.salida=(REGISTRAR_ESTAFA_OK+SEPARADOR);
@@ -311,8 +395,8 @@ public class MS_hiloDelCliente extends Thread {
                         
                         break;
                     case GET_LIST_ESTAFAS:
-                        System.out.println("get estafas");
-                        String ss=clase_compartida.getLista_estafas();
+                        System.out.println("get GET_LIST_ESTAFAS");
+                        String ss=estafaDao.getLista_estafas();
                         if(!ss.equals(""))
                                 this.salida=(ss);
                         else
@@ -321,13 +405,23 @@ public class MS_hiloDelCliente extends Thread {
                         
                     case GET_DETALLES_ESTAFAS:
                        // System.out.println("get GET_DETALLES_ESTAFAS "+mensaje);
-                        String str_id=strSplit[1];
+                        str_id=strSplit[1];
                         System.out.println("MS detalles STRING ID "+str_id);
-                        String details=clase_compartida.getDetail_estafas(str_id);
+                        String details=estafaDao.getDetail_estafas(str_id);
                         System.out.println("get GET_DETALLES_ESTAFAS "+details);
                         
                         this.salida=(details);
-                        break;    
+                        break;  
+                    
+                    case GET_CONTADOR_VISTAS:// 1- update +1,  2-obtengo
+                        str_id=strSplit[1];
+                        //System.out.println("MS detalles STRING ID "+str_id);                       
+                        estafaDao.addVisita(str_id);
+                        
+                        String contador=estafaDao.getContadorVisitas(str_id);
+                        System.out.println(" GET_CONTADOR_VISTAS "+contador);
+                        this.salida=(contador);
+                        break;
 
                     case COMENTARIO:// COMENTARIO:'blabla':id_estafa:fecha:email_usuario
                         System.out.println("stoy en COMENTARIO\n"+mensaje);
@@ -335,7 +429,7 @@ public class MS_hiloDelCliente extends Thread {
                         int id_estafa=Integer.parseInt(strSplit[2]);
                         fecha=strSplit[3];
                         String nick=strSplit[4];
-                        String meterBd=clase_compartida.addComment_estafa(id_estafa, comentario, fecha, nick);
+                        String meterBd=commentDao.addComment_estafa(id_estafa, comentario, fecha, nick);
 
                         this.salida=(meterBd);
                         break;
@@ -343,55 +437,39 @@ public class MS_hiloDelCliente extends Thread {
                     case GET_COMMENTS_ESTAFA://GET_COMMENTS_ESTAFA+SEPARADOR+ID_ESTAFA
                         System.out.println("MS GET_COMMENTS_ESTAFA\n\t"+mensaje);
                         int id=Integer.parseInt(strSplit[1]);
-                        String comments=clase_compartida.getComentarios_by(id);
+                        String comments=commentDao.getComentarios_by(id);
                         System.out.println("----comments "+comments);
                         this.salida=(comments);
                         break;
                                 
                         
                     case GET_CATEGORIES:
-                        System.out.println("STOY CATEGORIA");
-                        String str_categories=clase_compartida.getCategories();
+                        System.out.println("STOY GET_CATEGORIES");
+                        String str_categories=categoryDao.getCategories();
+                        System.out.println("GET_CATEGORIES "+str_categories);
                         this.salida=(str_categories);
                         break;
   // PENDIENTE FILTRADO TAGS                      
-                    case GET_TAGS:
+                     case GET_TAGS:
                         System.out.println("\tLONGi "+strSplit.length+"\t");
                         if(strSplit.length==2){//GET_TAGS:str_id
-                           String tags=clase_compartida.getTagsBy(strSplit[1]); 
-                           System.out.println("\tSTOY tags BY NAME "+strSplit[1]+
+                        String tags=tagDao.getTagsBy(strSplit[1]); 
+                        System.out.println("\tSTOY tags BY NAME "+strSplit[1]+
                            "\t"+tags);
                               this.salida=(tags);
                          } else{//GET_TAGS:
-                             String tags=clase_compartida.getTags();
+                             String tags=tagDao.getTags();
                            System.out.println("TAGS NORMAL  "+tags); 
                                  this.salida=(tags);
                          }
                         break;
                         
-                    case DELETE:
-                       // System.out.println("STOY DELETE "+mensaje);
-                        respuesta=clase_compartida.deleteBy(strSplit[1]);
-                        this.salida=(DELETE+SEPARADOR+respuesta);
-                        break; 
+                    
+ 
                         
-                    case UPDATE:
-                       // System.out.println("UPDATE "+mensaje);
-                        respuesta=clase_compartida.updateBy(mensaje);
-                        this.salida=(DELETE+SEPARADOR+respuesta);
-                        break; 
-                        
-                    case INSERT:
-                        //System.out.println("INSERT "+mensaje);
-                        respuesta=clase_compartida.updateBy(mensaje);
-                        this.salida=(DELETE+SEPARADOR+respuesta);
-                        break; 
-                        
-                    case ADDTAG:
-                        //System.out.println("ADDTAG "+mensaje);
-                        respuesta=clase_compartida.addTag(mensaje);
-                        this.salida=(ADDTAG+SEPARADOR+respuesta);
-                        break; 
+                   
+                    
+ 
                         
                     case CONTACTO:
                         System.out.println("CONTACTO  "+mensaje);
@@ -418,11 +496,16 @@ private String respuesta="";
     }
     
     private String dameFecha(){
-      Date date=new Date();
-      SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
-      String fecha = sdf.format(date); 
-      return fecha;
+           SimpleDateFormat df = new SimpleDateFormat("dd-MM-yyyy HH-mm-ss");
+          String dateNow=df.format(new Date());
+      System.out.println("fecha "+dateNow);
+      return dateNow;
     }
+
+
+    
+    
+    
 }
 
  

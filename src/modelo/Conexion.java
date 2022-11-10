@@ -15,7 +15,7 @@ https://fernando-gaitan.com.ar/conectar-java-con-mysql-en-netbeans/
  */
 public class Conexion {
    private static Connection cnx = null;
-   private static String nombreBd="a_proyectoapp";
+   private static String nombreBd="new_bd_onlyEstafas";//"a_proyectoapp";
    private static String user="root";
    private static String password="";
    
